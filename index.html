@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mix Assistant • All-in-One Analyzer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              400: '#38bdf8',
+              500: '#0ea5e9',
+              600: '#0284c7',
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+  <!-- Radial glow background -->
+  <div class="pointer-events-none fixed inset-0 overflow-hidden">
+    <div class="absolute -top-40 -left-40 h-80 w-80 rounded-full bg-brand-500/20 blur-3xl"></div>
+    <div class="absolute -bottom-40 -right-40 h-80 w-80 rounded-full bg-purple-500/20 blur-3xl"></div>
+  </div>
+
+  <main class="relative z-10 flex items-center justify-center min-h-screen px-4 py-8">
+    <div class="w-full max-w-5xl mx-auto">
+      <!-- Header -->
+      <header class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <div class="inline-flex items-center gap-2 rounded-full bg-slate-900/80 border border-slate-700/70 px-3 py-1 mb-3">
+            <span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span class="text-[11px] uppercase tracking-[0.2em] text-slate-300">Runs locally • No upload</span>
+          </div>
+          <h1 class="text-3xl sm:text-4xl font-semibold tracking-tight">
+            Mix Assistant
+          </h1>
+          <p class="mt-1 text-sm text-slate-400 max-w-xl">
+            An all-in-one loudness, dynamics, and stereo analyzer inspired by FabFilter &amp; iZotope —
+            built to live next to your DAW.
+          </p>
+        </div>
+        <div class="text-xs text-slate-500 sm:text-right">
+          <p class="font-semibold text-slate-300">Session Tips</p>
+          <p>1. Bounce 16–24 bit WAV or MP3</p>
+          <p>2. Analyze full drop/chorus</p>
+          <p>3. Compare against your reference</p>
+        </div>
+      </header>
+
+      <!-- Main plugin shell -->
+      <div class="rounded-3xl border border-slate-800/80 bg-slate-900/80 backdrop-blur-xl shadow-[0_0_40px_rgba(15,23,42,0.8)] overflow-hidden">
+        <!-- Top bar -->
+        <div class="flex items-center justify-between border-b border-slate-800/80 px-4 py-3">
+          <div class="flex items-center gap-2">
+            <div class="flex gap-1">
+              <span class="h-2.5 w-2.5 rounded-full bg-rose-500/70"></span>
+              <span class="h-2.5 w-2.5 rounded-full bg-amber-400/80"></span>
+              <span class="h-2.5 w-2.5 rounded-full bg-emerald-400/80"></span>
+            </div>
+            <span class="ml-3 text-xs font-medium uppercase tracking-[0.18em] text-slate-400">
+              MIX ANALYZER • BETA
+            </span>
+          </div>
+          <span id="fileName" class="max-w-[40%] truncate text-xs text-slate-400">
+            No track loaded
+          </span>
+        </div>
+
+        <!-- Content -->
+        <div class="grid gap-0 md:grid-cols-[1.1fr_1.4fr]">
+          <!-- Left: File + controls -->
+          <section class="border-b md:border-b-0 md:border-r border-slate-800/70 p-4 sm:p-5 flex flex-col gap-4">
+            <!-- Upload zone -->
+            <label
+              for="audioFile"
+              class="group flex flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-700/80 bg-slate-900/70 px-4 py-8 text-center hover:border-brand-500/80 hover:bg-slate-900 transition-all cursor-pointer"
+            >
+              <div class="mb-3 inline-flex items-center justify-center rounded-full bg-slate-800/80 px-3 py-1 text-[11px] text-slate-300 gap-2">
+                <span class="inline-block h-2 w-2 rounded-full bg-brand-500/80"></span>
+                <span>Drop mix, master, or stem</span>
+              </div>
+              <p class="text-sm font-medium text-slate-100 mb-1">
+                Drag &amp; drop audio file
+              </p>
+              <p class="text-xs text-slate-400 mb-3">
+                or click to browse (WAV, MP3, AAC, AIFF…)
+              </p>
+              <p class="text-[11px] text-slate-500 max-w-xs">
+                Tip: Export the loudest section (drop/chorus) to get meaningful loudness &amp; dynamics readings.
+              </p>
+              <input id="audioFile" type="file" accept="audio/*" class="hidden" />
+            </label>
+
+            <!-- Controls -->
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div class="flex-1">
+                <p class="mb-1 flex items-center justify-between text-[11px] uppercase tracking-[0.16em] text-slate-400">
+                  <span>Target Style</span>
+                </p>
+                <select
+                  id="genreSelect"
+                  class="w-full rounded-xl border border-slate-700/80 bg-slate-900/80 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500/80"
+                >
+                  <option value="generic">Generic / Mixed</option>
+                  <option value="edm">EDM / Big Room / Festival</option>
+                  <option value="trap">Trap / Hip-Hop</option>
+                  <option value="pop">Pop / Commercial</option>
+                  <option value="lofi">Lo-Fi / Chill</option>
+                </select>
+              </div>
+              <div class="flex flex-col items-stretch gap-2 sm:w-40">
+                <button
+                  id="analyzeButton"
+                  class="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-3 py-2 text-xs font-semibold tracking-wide text-slate-950 shadow-lg shadow-brand-500/40 hover:bg-brand-400 disabled:bg-slate-800 disabled:text-slate-500 disabled:shadow-none transition"
+                  disabled
+                >
+                  <span>Analyze Audio</span>
+                </button>
+                <p id="statusText" class="text-[11px] text-slate-500 min-h-[1.5rem]">
+                  No file loaded yet.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <!-- Right: Meters + suggestions -->
+          <section class="p-4 sm:p-5 flex flex-col gap-4">
+            <!-- Meters row -->
+            <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <!-- Duration -->
+              <div class="relative overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/60">
+                <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-500/70 to-transparent opacity-70"></div>
+                <div class="p-3">
+                  <p class="text-[10px] uppercase tracking-[0.18em] text-slate-500 mb-1">
+                    Duration
+                  </p>
+                  <p id="durationValue" class="text-2xl font-semibold tabular-nums">
+                    –
+                  </p>
+                  <p class="mt-1 text-[11px] text-slate-500">
+                    Total analyzed length of the file.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Peak -->
+              <div class="relative overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/60">
+                <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-rose-500/70 to-transparent opacity-70"></div>
+                <div class="p-3">
+                  <p class="text-[10px] uppercase tracking-[0.18em] text-slate-500 mb-1">
+                    Peak Level
+                  </p>
+                  <p id="peakValue" class="text-2xl font-semibold tabular-nums">
+                    –
+                  </p>
+                  <p class="mt-1 text-[11px] text-slate-500">
+                    Highest sample level (0 dBFS = digital ceiling).
+                  </p>
+                </div>
+              </div>
+
+              <!-- RMS / Crest -->
+              <div class="relative overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/60">
+                <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-400/70 to-transparent opacity-70"></div>
+                <div class="p-3">
+                  <p class="text-[10px] uppercase tracking-[0.18em] text-slate-500 mb-1">
+                    RMS &amp; Crest
+                  </p>
+                  <p id="rmsValue" class="text-sm font-semibold tabular-nums">
+                    –
+                  </p>
+                  <p id="crestValue" class="mt-1 text-[11px] text-slate-400">
+                    Crest: –
+                  </p>
+                </div>
+              </div>
+
+              <!-- Stereo -->
+              <div class="relative overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/60">
+                <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/70 to-transparent opacity-70"></div>
+                <div class="p-3">
+                  <p class="text-[10px] uppercase tracking-[0.18em] text-slate-500 mb-1">
+                    Stereo Image
+                  </p>
+                  <p id="stereoCorrValue" class="text-sm font-semibold tabular-nums">
+                    Corr: –
+                  </p>
+                  <p id="stereoBalanceValue" class="mt-1 text-[11px] text-slate-400">
+                    L/R Balance: –
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tabs (just visual grouping) -->
+            <div class="mt-1 flex flex-wrap gap-2 text-[11px] font-medium text-slate-400">
+              <span class="rounded-full bg-slate-900/80 border border-slate-700 px-3 py-1 text-brand-400">
+                Overview
+              </span>
+              <span class="rounded-full bg-slate-900/40 border border-slate-800 px-3 py-1">
+                Loudness &amp; Dynamics
+              </span>
+              <span class="rounded-full bg-slate-900/40 border border-slate-800 px-3 py-1">
+                Stereo &amp; Imaging
+              </span>
+              <span class="rounded-full bg-slate-900/40 border border-slate-800 px-3 py-1">
+                EQ &amp; Tonal Balance
+              </span>
+            </div>
+
+            <!-- Suggestions -->
+            <section
+              id="resultsSection"
+              class="hidden mt-2 space-y-3"
+            >
+              <div class="grid gap-3 lg:grid-cols-2">
+                <!-- Dynamics -->
+                <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                  <div class="mb-2 flex items-center justify-between">
+                    <h3 class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+                      Loudness &amp; Dynamics
+                    </h3>
+                    <span class="rounded-full bg-slate-900 border border-slate-700 px-2 py-0.5 text-[10px] text-amber-300">
+                      Pro-L / Pro-C / Ozone Maximizer
+                    </span>
+                  </div>
+                  <ul
+                    id="dynamicsList"
+                    class="list-disc list-inside space-y-1.5 text-sm text-slate-100 leading-snug"
+                  ></ul>
+                </div>
+
+                <!-- Stereo -->
+                <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                  <div class="mb-2 flex items-center justify-between">
+                    <h3 class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+                      Stereo &amp; Imaging
+                    </h3>
+                    <span class="rounded-full bg-slate-900 border border-slate-700 px-2 py-0.5 text-[10px] text-emerald-300">
+                      Ozone Imager / M-S Tools
+                    </span>
+                  </div>
+                  <ul
+                    id="stereoList"
+                    class="list-disc list-inside space-y-1.5 text-sm text-slate-100 leading-snug"
+                  ></ul>
+                </div>
+              </div>
+
+              <!-- EQ -->
+              <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                <div class="mb-2 flex items-center justify-between">
+                  <h3 class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+                    EQ / Tonal &amp; Mastering Suggestions
+                  </h3>
+                  <span class="rounded-full bg-slate-900 border border-slate-700 px-2 py-0.5 text-[10px] text-sky-300">
+                    Pro-Q / Ozone EQ / Tonal Balance
+                  </span>
+                </div>
+                <ul
+                  id="eqList"
+                  class="list-disc list-inside space-y-1.5 text-sm text-slate-100 leading-snug"
+                ></ul>
+              </div>
+            </section>
+          </section>
+        </div>
+      </div>
+
+      <!-- Footer note -->
+      <p class="mt-4 text-[11px] text-slate-500 text-center">
+        Use this as a guide, not a rulebook — always trust your ears and reference tracks.
+      </p>
+    </div>
+  </main>
+
+  <script>
+    const fileInput = document.getElementById("audioFile");
+    const analyzeButton = document.getElementById("analyzeButton");
+    const statusText = document.getElementById("statusText");
+    const resultsSection = document.getElementById("resultsSection");
+    const fileNameEl = document.getElementById("fileName");
+
+    const durationEl = document.getElementById("durationValue");
+    const peakEl = document.getElementById("peakValue");
+    const rmsEl = document.getElementById("rmsValue");
+    const crestEl = document.getElementById("crestValue");
+    const stereoCorrEl = document.getElementById("stereoCorrValue");
+    const stereoBalanceEl = document.getElementById("stereoBalanceValue");
+
+    const dynamicsList = document.getElementById("dynamicsList");
+    const stereoList = document.getElementById("stereoList");
+    const eqList = document.getElementById("eqList");
+    const genreSelect = document.getElementById("genreSelect");
+
+    let loadedArrayBuffer = null;
+    let loadedFileName = "";
+
+    fileInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) {
+        loadedArrayBuffer = null;
+        analyzeButton.disabled = true;
+        statusText.textContent = "No file loaded yet.";
+        fileNameEl.textContent = "No track loaded";
+        return;
+      }
+
+      loadedFileName = file.name;
+      const reader = new FileReader();
+      statusText.textContent = "Reading file…";
+
+      reader.onload = (event) => {
+        loadedArrayBuffer = event.target.result;
+        analyzeButton.disabled = false;
+        statusText.textContent = `Ready to analyze: ${file.name}`;
+        fileNameEl.textContent = file.name;
+      };
+
+      reader.onerror = () => {
+        loadedArrayBuffer = null;
+        analyzeButton.disabled = true;
+        statusText.textContent = "Error reading file.";
+        fileNameEl.textContent = "No track loaded";
+      };
+
+      reader.readAsArrayBuffer(file);
+    });
+
+    analyzeButton.addEventListener("click", async () => {
+      if (!loadedArrayBuffer) return;
+
+      statusText.textContent = "Decoding audio… (all local, nothing uploaded)";
+      analyzeButton.disabled = true;
+
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const decoded = await audioCtx.decodeAudioData(loadedArrayBuffer.slice(0));
+
+        const analysis = analyzeAudioBuffer(decoded);
+        const genre = genreSelect.value;
+        const { dynamicsTips, stereoTips, eqTips } = generateSuggestions(analysis, genre);
+
+        // Update meters
+        durationEl.textContent = formatDuration(analysis.durationSeconds);
+
+        peakEl.textContent = isFinite(analysis.peakDb)
+          ? analysis.peakDb.toFixed(1) + " dBFS"
+          : "–";
+
+        rmsEl.textContent = isFinite(analysis.rmsDb)
+          ? analysis.rmsDb.toFixed(1) + " dBFS"
+          : "–";
+
+        crestEl.textContent = isFinite(analysis.crestFactorDb)
+          ? `Crest: ${analysis.crestFactorDb.toFixed(1)} dB`
+          : "Crest: –";
+
+        if (isFinite(analysis.stereoCorrelation)) {
+          stereoCorrEl.textContent =
+            "Corr: " + analysis.stereoCorrelation.toFixed(2) + " (-1 wide / +1 mono)";
+        } else {
+          stereoCorrEl.textContent = "Corr: –";
+        }
+
+        if (isFinite(analysis.lrBalanceDb)) {
+          const side = analysis.lrBalanceDb > 0 ? "L louder" : "R louder";
+          stereoBalanceEl.textContent =
+            "L/R Balance: " + analysis.lrBalanceDb.toFixed(1) + " dB (" + side + ")";
+        } else {
+          stereoBalanceEl.textContent = "L/R Balance: –";
+        }
+
+        // Suggestions
+        dynamicsList.innerHTML = "";
+        stereoList.innerHTML = "";
+        eqList.innerHTML = "";
+
+        dynamicsTips.forEach((t) => {
+          const li = document.createElement("li");
+          li.textContent = t;
+          dynamicsList.appendChild(li);
+        });
+
+        stereoTips.forEach((t) => {
+          const li = document.createElement("li");
+          li.textContent = t;
+          stereoList.appendChild(li);
+        });
+
+        eqTips.forEach((t) => {
+          const li = document.createElement("li");
+          li.textContent = t;
+          eqList.appendChild(li);
+        });
+
+        resultsSection.classList.remove("hidden");
+        statusText.textContent = "Analysis complete.";
+      } catch (err) {
+        console.error(err);
+        statusText.textContent = "Failed to decode or analyze audio.";
+      } finally {
+        analyzeButton.disabled = false;
+      }
+    });
+
+    function analyzeAudioBuffer(buffer) {
+      const numChannels = buffer.numberOfChannels;
+      const length = buffer.length;
+      const durationSeconds = buffer.duration;
+
+      let peak = 0;
+      let sumSquares = 0;
+      let totalSamples = 0;
+
+      // Stereo metrics
+      let hasStereo = numChannels >= 2;
+      let sumL2 = 0;
+      let sumR2 = 0;
+      let sumLR = 0;
+      let sumAbsL = 0;
+      let sumAbsR = 0;
+
+      const channelData = [];
+      for (let ch = 0; ch < numChannels; ch++) {
+        channelData[ch] = buffer.getChannelData(ch);
+      }
+
+      // Step to reduce CPU usage on long files
+      const step = Math.max(1, Math.floor(length / 200000));
+
+      for (let i = 0; i < length; i += step) {
+        let mixedSample = 0;
+
+        for (let ch = 0; ch < numChannels; ch++) {
+          mixedSample += channelData[ch][i];
+        }
+        mixedSample /= numChannels;
+
+        const absSample = Math.abs(mixedSample);
+        if (absSample > peak) peak = absSample;
+
+        sumSquares += mixedSample * mixedSample;
+        totalSamples++;
+
+        if (hasStereo) {
+          const L = channelData[0][i];
+          const R = channelData[1][i];
+          sumL2 += L * L;
+          sumR2 += R * R;
+          sumLR += L * R;
+          sumAbsL += Math.abs(L);
+          sumAbsR += Math.abs(R);
+        }
+      }
+
+      const rmsLinear = totalSamples > 0 ? Math.sqrt(sumSquares / totalSamples) : 0;
+      const peakDb = linearToDb(peak);
+      const rmsDb = linearToDb(rmsLinear);
+      const crestFactorDb =
+        isFinite(peakDb) && isFinite(rmsDb) ? peakDb - rmsDb : NaN;
+
+      let stereoCorrelation = NaN;
+      let lrBalanceDb = NaN;
+
+      if (hasStereo && sumL2 > 0 && sumR2 > 0) {
+        stereoCorrelation = sumLR / Math.sqrt(sumL2 * sumR2);
+        const avgL = sumAbsL / totalSamples;
+        const avgR = sumAbsR / totalSamples;
+        if (avgL > 0 && avgR > 0) {
+          lrBalanceDb = 20 * Math.log10(avgL / avgR);
+        }
+      }
+
+      return {
+        durationSeconds,
+        peakLinear: peak,
+        peakDb,
+        rmsLinear: rmsLinear,
+        rmsDb,
+        crestFactorDb,
+        stereoCorrelation,
+        lrBalanceDb
+      };
+    }
+
+    function linearToDb(value) {
+      if (value <= 0) return -Infinity;
+      return 20 * Math.log10(value);
+    }
+
+    function formatDuration(seconds) {
+      if (!isFinite(seconds)) return "–";
+      const m = Math.floor(seconds / 60);
+      const s = Math.floor(seconds % 60);
+      return `${m}:${s.toString().padStart(2, "0")}`;
+    }
+
+    function generateSuggestions(analysis, genre) {
+      const { peakDb, rmsDb, crestFactorDb, stereoCorrelation, lrBalanceDb, durationSeconds } =
+        analysis;
+
+      const dynamicsTips = [];
+      const stereoTips = [];
+      const eqTips = [];
+
+      // --- Genre RMS windows (rough guidance) ---
+      let targetRmsHigh, targetRmsLow;
+      switch (genre) {
+        case "edm":
+          targetRmsHigh = -7;
+          targetRmsLow = -12;
+          dynamicsTips.push(
+            "EDM / festival drops often land around -7 to -9 dB RMS. Use a limiter (Pro-L / Ozone Maximizer) but watch for distortion and pump."
+          );
+          break;
+        case "trap":
+          targetRmsHigh = -8;
+          targetRmsLow = -13;
+          dynamicsTips.push(
+            "Trap / hip-hop masters often sit around -8 to -11 dB RMS with punchy 808s and snappy drums."
+          );
+          break;
+        case "pop":
+          targetRmsHigh = -8;
+          targetRmsLow = -13;
+          dynamicsTips.push(
+            "Pop tracks tend to be loud yet smooth, roughly around -8 to -12 dB RMS depending on vibe."
+          );
+          break;
+        case "lofi":
+          targetRmsHigh = -10;
+          targetRmsLow = -18;
+          dynamicsTips.push(
+            "Lo-Fi / chill usually lives a bit quieter (e.g., -10 to -18 dB RMS) with more dynamics and softer transients."
+          );
+          break;
+        default:
+          targetRmsHigh = -8;
+          targetRmsLow = -14;
+          dynamicsTips.push(
+            "Many modern masters fall somewhere between -8 and -14 dB RMS, but context and aesthetics matter more than numbers."
+          );
+          break;
+      }
+
+      // --- Basic sanity check ---
+      if (!isFinite(peakDb) || !isFinite(rmsDb)) {
+        dynamicsTips.push(
+          "Loudness metrics could not be computed cleanly. Try exporting as a standard 16–24 bit WAV or high-quality MP3."
+        );
+        eqTips.push(
+          "If analysis fails often, double-check your export settings (sample rate, bit depth, and file type)."
+        );
+        return { dynamicsTips, stereoTips, eqTips };
+      }
+
+      // --- Peak behavior ---
+      if (peakDb > -0.1) {
+        dynamicsTips.push(
+          `Peak at ${peakDb.toFixed(
+            1
+          )} dBFS is extremely close to 0 dBFS. Drop your limiter ceiling to about -0.8 to -1.0 dB to reduce inter-sample clipping, similar to how you'd set Pro-L or Ozone Maximizer.`
+        );
+      } else if (peakDb > -3) {
+        dynamicsTips.push(
+          `Peak at ${peakDb.toFixed(
+            1
+          )} dBFS is typical for a mastered track. Ceiling looks fine — focus on overall punch and tone.`
+        );
+      } else {
+        dynamicsTips.push(
+          `Peak at ${peakDb.toFixed(
+            1
+          )} dBFS is relatively low for a final master. Either this is a pre-master (good), or you can push your limiter input a bit harder.`
+        );
+      }
+
+      // --- RMS vs target ---
+      if (rmsDb > targetRmsHigh) {
+        dynamicsTips.push(
+          `RMS at ${rmsDb.toFixed(
+            1
+          )} dBFS is louder than the typical window for this style. The mix may feel over-compressed or fatiguing — back off bus compression or lower the limiter drive a touch.`
+        );
+      } else if (rmsDb < targetRmsLow) {
+        dynamicsTips.push(
+          `RMS at ${rmsDb.toFixed(
+            1
+          )} dBFS is quieter than usual. If this is meant as a final master, consider gentle bus compression and raising your overall level into the limiter.`
+        );
+      } else {
+        dynamicsTips.push(
+          `RMS at ${rmsDb.toFixed(
+            1
+          )} dBFS sits in a reasonable range for this genre. Use your ears and references to decide whether you want more punch or more loudness.`
+        );
+      }
+
+      // --- Crest factor (dynamic range) ---
+      if (isFinite(crestFactorDb)) {
+        if (crestFactorDb < 6) {
+          dynamicsTips.push(
+            `Crest factor of ${crestFactorDb.toFixed(
+              1
+            )} dB is very low, implying heavy compression/limiting. If the track feels choked, loosen your bus compression or reduce the limiter's lookahead/attack (Pro-C / Ozone Dynamics style tweaks).`
+          );
+        } else if (crestFactorDb > 14) {
+          dynamicsTips.push(
+            `Crest factor of ${crestFactorDb.toFixed(
+              1
+            )} dB is quite high, meaning lots of dynamic range. If it feels too soft or inconsistent, tame peaks with a bit more compression on drums, vocals, or the mix bus.`
+          );
+        } else {
+          dynamicsTips.push(
+            `Crest factor at ${crestFactorDb.toFixed(
+              1
+            )} dB is a healthy middle ground — you've got some punch without being overly squashed.`
+          );
+        }
+      } else {
+        dynamicsTips.push(
+          "Crest factor could not be calculated cleanly; dynamics guidance is limited for this file."
+        );
+      }
+
+      if (durationSeconds < 20) {
+        dynamicsTips.push(
+          "This appears to be a short clip or stem. Always judge final loudness and dynamics in the context of the full arrangement."
+        );
+      }
+
+      // --- Stereo image / correlation ---
+      if (isFinite(stereoCorrelation)) {
+        if (stereoCorrelation > 0.9) {
+          stereoTips.push(
+            `Stereo correlation at ${stereoCorrelation.toFixed(
+              2
+            )} suggests a very narrow or mono image. For more width, try subtle stereo widening (Ozone Imager), panned layers, or adding side content via mid/side EQ.`
+          );
+        } else if (stereoCorrelation > 0.2) {
+          stereoTips.push(
+            `Stereo correlation at ${stereoCorrelation.toFixed(
+              2
+            )} indicates a generally healthy stereo field. Just make sure essentials (kick, bass, lead vocal) stay focused in the center.`
+          );
+        } else if (stereoCorrelation > -0.2) {
+          stereoTips.push(
+            `Stereo correlation at ${stereoCorrelation.toFixed(
+              2
+            )} shows a very wide image. This can sound exciting, but check mono compatibility — collapse to mono occasionally to ensure the mix doesn't disappear.`
+          );
+        } else {
+          stereoTips.push(
+            `Stereo correlation at ${stereoCorrelation.toFixed(
+              2
+            )} suggests extreme width or phase issues. Dial back aggressive stereo widening, check reverb/FX phase, and audition in mono frequently.`
+          );
+        }
+      } else {
+        stereoTips.push(
+          "Stereo correlation couldn't be calculated — the file may be mono, or there was an issue reading channel data."
+        );
+      }
+
+      if (isFinite(lrBalanceDb)) {
+        if (Math.abs(lrBalanceDb) < 1.5) {
+          stereoTips.push(
+            `L/R balance within about ${lrBalanceDb.toFixed(
+              1
+            )} dB is effectively centered. This is ideal for kick, bass, and main vocals.`
+          );
+        } else {
+          const side = lrBalanceDb > 0 ? "left" : "right";
+          stereoTips.push(
+            `L/R balance is tilted ~${Math.abs(
+              lrBalanceDb
+            ).toFixed(1)} dB towards the ${side} side. Check that key elements aren't unintentionally panned; small pan/level tweaks or mid/side adjustments can fix this.`
+          );
+        }
+      }
+
+      // --- EQ & tonal guidance ---
+      eqTips.push(
+        "Load 1–2 professional reference tracks into your DAW and level-match them to your mix. Flip between them to judge low-end weight, vocal/lead presence, and top-end brightness."
+      );
+
+      if (genre === "edm" || genre === "trap") {
+        eqTips.push(
+          "For EDM/trap, keep low end clean: high-pass non-bass elements and consider a narrow cut around 200–350 Hz if the mix feels muddy (Pro-Q-style surgical EQ)."
+        );
+        eqTips.push(
+          "If your drop/808 feels dull, try a gentle wide boost around 4–8 kHz on leads and drums — but tame harsh peaks with dynamic EQ or a de-esser instead of constant boosts."
+        );
+      } else if (genre === "pop") {
+        eqTips.push(
+          "For pop, vocals are king: tame muddiness around 200–400 Hz, add subtle presence around 2–5 kHz, and control sibilance with a de-esser rather than huge top-end boosts."
+        );
+      } else if (genre === "lofi") {
+        eqTips.push(
+          "For lo-fi/chill, it's okay to roll off some top end (e.g., low-pass around 10–14 kHz) and keep low end softer for a relaxed, tape-like character."
+        );
+      }
+
+      eqTips.push(
+        "On the master, think small moves: 1–2 dB EQ cuts/boosts with a transparent EQ (Pro-Q / Ozone EQ) and a clean limiter get you 90% of the way. Fix big problems in the mix, not on the 2-bus."
+      );
+      eqTips.push(
+        "If the mix feels boxy or muddy, sweep with a narrow bell between 200–500 Hz and listen for problem buildups. If it feels harsh, look around 3–6 kHz on the harsh elements individually."
+      );
+
+      return { dynamicsTips, stereoTips, eqTips };
+    }
+  </script>
+</body>
+</html>
